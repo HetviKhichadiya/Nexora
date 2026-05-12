@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('organization_users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users');
-            $table->foreignId('organization_id')->constrained('organizations');
-            $table->foreignId('role_id')->constrained('roles');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('organization_id')->constrained('organizations')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('role_id')->constrained('roles')->onDelete('cascade')->onUpdate('cascade');
             $table->tinyInteger('status')->comment('0: in_active, 1: active');
             $table->timestamps();
             $table->softDeletes();
