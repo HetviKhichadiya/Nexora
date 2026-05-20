@@ -64,7 +64,7 @@ class AuthController extends Controller
                     'product_name' => isset($product_name) && $product_name != 'Team Amplify' ? "Team " . $product_name : 'Team Amplify'
                 ],
                 'result' => [],
-                'view' => 'emails.purchase_number',
+                'view' => 'EmailTemplate',
                 'from_email' => $from_email,
                 'from_name' => isset($product_name) ? $product_name : "Team Amplify",
             ];
