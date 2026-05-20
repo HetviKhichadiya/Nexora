@@ -149,7 +149,7 @@ class AuthController extends Controller
     public function deleteForeverUser($id)
     {
         try{
-            $user = User::find($id)->withTrashed()->first();
+            $user = User::withTrashed()->find($id);
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
             }
