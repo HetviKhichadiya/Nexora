@@ -51,7 +51,7 @@ class AuthController extends Controller
             }
             return successResponse(HttpStatusConstant::CREATED, $create_user);
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'An error occurred during signup');
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
         }
     }
 
@@ -68,7 +68,7 @@ class AuthController extends Controller
             $user->delete();
             return successResponse(HttpStatusConstant::OK, 'User deleted successfully');
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'An error occurred while deleting user');
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
         }
     }
 
@@ -115,7 +115,7 @@ class AuthController extends Controller
             }
             return successResponse(HttpStatusConstant::OK, 'Logged out successfully');
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'An error occurred while logging out');
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
         }
     } 
 }
