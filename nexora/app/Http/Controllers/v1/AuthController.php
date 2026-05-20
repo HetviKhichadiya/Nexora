@@ -83,7 +83,7 @@ class AuthController extends Controller
     /**
      * Delete user
      */
-    public function deleteUser($id)
+    public function deleteUser($id = null)
     {
         try{
             if(!$id) {
@@ -150,10 +150,10 @@ class AuthController extends Controller
     /**
      * Permanently delete user
      */
-    public function deleteForeverUser($id)
+    public function deleteForeverUser($id = null)
     {
         try{
-            if (!$id) {
+            if(empty($id)) {
                 return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_ID', 'Invalid user ID');
             }
             $user = User::withTrashed()->find($id);
