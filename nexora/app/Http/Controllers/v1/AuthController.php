@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\v1;
 
-use App\Helpers\CommonHelpers;
+use App\Constants\HttpStatusConstant;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -29,9 +29,9 @@ class AuthController extends Controller
         $user_type = $request->user_type;
 
         // Check email exists in users table
-        $check_email = CommonHelpers::emailExists($email);
+        $check_email = emailExists($email);
         if ($check_email) {
-            return response()->json(['message' => 'Email already exists'], 400);
+            return errorResponse(HttpStatusConstant::BAD_REQUEST, 'EMAIL_EXISTS', 'Email already exists');
         }
 
         $create_user = User::create([
@@ -45,9 +45,8 @@ class AuthController extends Controller
         ]);
 
         if(!$create_user) {
-            return response()->json(['message' => 'User registration failed'], 500);
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to create user');
         }
-
-        return response()->json(['message' => 'User registered successfully']);
+        return successResponse(HttpStatusConstant::CREATED, $create_user);
     }
 }
