@@ -142,4 +142,21 @@ class AuthController extends Controller
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
         }
     } 
+
+    /**
+     * Permanently delete user
+     */
+    public function deleteForeverUser($id)
+    {
+        try{
+            $user = User::find($id)->withTrashed()->first();
+            if (!$user) {
+                return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            $user->forceDelete();
+            return successResponse(HttpStatusConstant::OK, 'User deleted permanently');
+        } catch (\Exception $e) {
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+        }
+    }
 }

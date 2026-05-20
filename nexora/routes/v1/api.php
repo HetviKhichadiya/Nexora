@@ -11,5 +11,6 @@ Route::prefix('v1')->group(function () {
     Route::controller(AuthController::class)->middleware('auth:sanctum')->group(function () {
         Route::post('/logout', 'logout');
         Route::delete('/user/{id}', 'deleteUser');
+        Route::delete('/permanent/user/{id}', 'deleteForeverUser');
     });
 });
