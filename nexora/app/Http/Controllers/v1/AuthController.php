@@ -49,4 +49,17 @@ class AuthController extends Controller
         }
         return successResponse(HttpStatusConstant::CREATED, $create_user);
     }
+
+    /**
+     * Delete user
+     */
+    public function deleteUser($id)
+    {
+        $user = User::find($id);
+        if (!$user) {
+            return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+        }
+        $user->delete();
+        return successResponse(HttpStatusConstant::OK, 'User deleted successfully');
+    }
 }

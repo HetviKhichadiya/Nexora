@@ -5,4 +5,5 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::post('/signup', [AuthController::class, 'signup']);
+    Route::delete('/user/{id}', [AuthController::class, 'deleteUser']);
 });
