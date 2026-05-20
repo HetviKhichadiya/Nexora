@@ -61,12 +61,12 @@ class AuthController extends Controller
                     'footer_txt' => "Thanks for using Nexora!",
                     'button_url' => $button_url,
                     'button_text' => $button_text,
-                    'product_name' => isset($product_name) && $product_name != 'Team Amplify' ? "Team " . $product_name : 'Team Amplify'
+                    'product_name' => 'Team Nexora',
                 ],
                 'result' => [],
                 'view' => 'EmailTemplate',
                 'from_email' => $from_email,
-                'from_name' => isset($product_name) ? $product_name : "Team Amplify",
+                'from_name' => "Team Nexora",
             ];
 
             Mail::to($email)->send(new \App\Mail\SendMail($mail_data));
