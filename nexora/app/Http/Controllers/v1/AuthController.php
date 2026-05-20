@@ -95,6 +95,7 @@ class AuthController extends Controller
             }
             //generate token for further authentication
             $token = $user->createToken('auth_token')->plainTextToken;
+            $user->update(['last_login_at' => now()]);
             return successResponse(HttpStatusConstant::OK, $token);
         } catch (\Exception $e) {
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
