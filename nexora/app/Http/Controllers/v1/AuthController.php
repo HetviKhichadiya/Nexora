@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\v1;
 
+use App\Constants\EmailConstant;
 use App\Constants\HttpStatusConstant;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -46,6 +48,28 @@ class AuthController extends Controller
                 'user_type' => $user_type,
             ]);
 
+            $subject = 'Welcome to Nexora';
+            $email_content = 'Thank you for signing up with Nexora. We are excited to have you on board! If you have any questions or need assistance, feel free to reach out to our support team.';
+            $button_url = 'https://nexora.com';
+            $button_text = 'Visit Nexora';
+            $from_email = EmailConstant::FROM_EMAIL;
+            $mail_data = [
+                'form_type' => $subject,
+                'greeting' => "Hi {$create_user->first_name} {$create_user->last_name},",
+                'email_data' => [
+                    'body_text'  => $email_content,
+                    'footer_txt' => "Thanks for using Nexora!",
+                    'button_url' => $button_url,
+                    'button_text' => $button_text,
+                    'product_name' => isset($product_name) && $product_name != 'Team Amplify' ? "Team " . $product_name : 'Team Amplify'
+                ],
+                'result' => [],
+                'view' => 'emails.purchase_number',
+                'from_email' => $from_email,
+                'from_name' => isset($product_name) ? $product_name : "Team Amplify",
+            ];
+
+            Mail::to($email)->send(new \App\Mail\SendMail($mail_data));
             if (!$create_user) {
                 return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to create user');
             }
