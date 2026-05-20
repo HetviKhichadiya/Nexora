@@ -23,10 +23,10 @@ class AuthController extends Controller
         $email = $request->email;
         $password = $request->password;
         $name= $request->name;
-        $first_name = $request->first_name;
-        $last_name = $request->last_name;
-        $status = $request->status;
-        $user_type = $request->user_type;
+        $first_name = $request->first_name ?? '';
+        $last_name = $request->last_name ?? '';
+        $status = $request->status ?? 1;
+        $user_type = $request->user_type ?? 'user';
 
         // Check email exists in users table
         $check_email = emailExists($email);
