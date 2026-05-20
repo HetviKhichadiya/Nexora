@@ -5,6 +5,7 @@ namespace App\Http\Controllers\v1;
 use App\Constants\EmailConstant;
 use App\Constants\HttpStatusConstant;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendEmailJob;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -69,7 +70,7 @@ class AuthController extends Controller
                 'from_name' => "Team Nexora",
             ];
 
-            Mail::to($email)->send(new \App\Mail\SendMail($mail_data));
+            dispatch(new SendEmailJob($email, $mail_data));
             if (!$create_user) {
                 return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to create user');
             }
