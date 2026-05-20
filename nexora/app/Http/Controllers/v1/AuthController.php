@@ -86,6 +86,9 @@ class AuthController extends Controller
     public function deleteUser($id)
     {
         try{
+            if(!$id) {
+                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_ID', 'Invalid user ID');
+            }
             $user = User::find($id);
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
@@ -150,6 +153,9 @@ class AuthController extends Controller
     public function deleteForeverUser($id)
     {
         try{
+            if (!$id) {
+                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_ID', 'Invalid user ID');
+            }
             $user = User::withTrashed()->find($id);
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
