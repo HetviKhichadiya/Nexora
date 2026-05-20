@@ -113,6 +113,7 @@ class AuthController extends Controller
             if(!$logout) {
                 return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to logout');
             }
+            $user->currentAccessToken()->delete();
             return successResponse(HttpStatusConstant::OK, 'Logged out successfully');
         } catch (\Exception $e) {
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'An error occurred while logging out');
