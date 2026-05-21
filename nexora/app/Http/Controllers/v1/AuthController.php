@@ -113,6 +113,10 @@ class AuthController extends BaseApiController
             $email = $request->email;
             $password = $request->password;
             $user = User::where('email', $email)->first();
+            //need to chech email verification for login
+            if(!$user->email_verified_at){
+                return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'EMAIL_NOT_VERIFIED', 'Email not verified');
+            } 
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
             }
