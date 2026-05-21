@@ -214,7 +214,7 @@ class AuthController extends BaseApiController
             }
             $token = Str::random(64);
             $hashed_token = Hash::make($token);
-            $user->update(['remember_token' => $hashed_token]);
+            $user->update(['password_reset_token' => $hashed_token]);
             //send mail for forgot password
             $subject = 'Reset Your Password';
             $email_content = 'You have requested to reset your password. Please click the button below to reset your password.';
