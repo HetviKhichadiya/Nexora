@@ -13,7 +13,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/login', 'login');
         Route::post('/forgot-password', 'forgotPassword');
         Route::post('/reset-password', 'resetPassword');
-        Route::get('/email/verification/{email?}', 'sendVerificationEmail'); //send email verification link to user email
         Route::post('/email/verify', 'verifyEmail'); //verify email using token from email link
     });
     Route::controller(AuthController::class)->middleware('auth:sanctum')->group(function () {

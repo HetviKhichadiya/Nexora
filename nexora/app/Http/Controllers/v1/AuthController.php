@@ -8,6 +8,7 @@ use App\Jobs\SendEmailJob;
 use Illuminate\Support\Str;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends BaseApiController
@@ -23,7 +24,7 @@ class AuthController extends BaseApiController
             'password' => 'required|string|min:8|confirmed',
             'user_type' => 'required|in:1,2',//allow only 1 for user and 2 for customer
         ]);
-
+        DB::beginTransaction();
         try{
             $email = $request->email;
             $password = $request->password;
@@ -62,13 +63,40 @@ class AuthController extends BaseApiController
                 'from_email' => $from_email,
                 'from_name' => "Team Nexora",
             ];
+            SendEmailJob::dispatch($email, $mail_data)->afterCommit();
 
-            SendEmailJob::dispatch($email, $mail_data);
+            //send mail for email verification
+            $verification_token = Str::random(64);
+            $hashed_token = Hash::make($verification_token);
+            $create_user->update(['email_verification_token' => $hashed_token]);
+            $subject = 'Email Verification';
+            $email_content = 'Please click the button below to verify your email address.';
+            $button_url = 'https://nexora.com/verify-email/' . $verification_token; //temporary url for email verification page
+            $button_text = 'Verify Email';
+            $from_email = EmailConstant::FROM_EMAIL;
+            $mail_data = [
+                'form_type' => $subject,
+                'greeting' => "Hi {$create_user->first_name} {$create_user->last_name},",
+                'email_data' => [
+                    'body_text'  => $email_content,
+                    'footer_txt' => "Thanks for using Nexora!",
+                    'button_url' => $button_url,
+                    'button_text' => $button_text,
+                    'product_name' => 'Team Nexora',
+                ],
+                'result' => [],
+                'view' => 'EmailTemplate',
+                'from_email' => $from_email,
+                'from_name' => "Team Nexora",
+            ];
+            SendEmailJob::dispatch($create_user->email, $mail_data)->afterCommit();
             if (!$create_user) {
                 return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to create user');
             }
+            DB::commit();
             return successResponse(HttpStatusConstant::CREATED, $create_user);
         } catch (\Exception $e) {
+            DB::rollback();
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
     }
@@ -247,55 +275,6 @@ class AuthController extends BaseApiController
             ];
             SendEmailJob::dispatch($email, $mail_data);
             return successResponse(HttpStatusConstant::OK, 'Password reset link sent to your email');
-        } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
-        }
-    }
-
-    /**
-     * Send email verification notification
-     */
-    public function sendVerificationEmail($email = null)
-    {
-        try{
-            if(empty($email)) {
-                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'EMAIL_REQUIRED', 'Email is required');
-            }
-            $user_email = $email;
-            $user = User::where(['email' => $user_email])->first();
-            if (!$user) {
-                return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
-            }
-            if($user->status != 1) {
-                return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'USER_INACTIVE', 'User is inactive');
-            }
-
-            //send mail for email verification
-            $verification_token = Str::random(64);
-            $hashed_token = Hash::make($verification_token);
-            $user->update(['email_verification_token' => $hashed_token]);
-            $subject = 'Email Verification';
-            $email_content = 'Please click the button below to verify your email address.';
-            $button_url = 'https://nexora.com/verify-email/'.$verification_token; //temporary url for email verification page
-            $button_text = 'Verify Email';
-            $from_email = EmailConstant::FROM_EMAIL;
-            $mail_data = [
-                'form_type' => $subject,
-                'greeting' => "Hi {$user->first_name} {$user->last_name},",
-                'email_data' => [
-                    'body_text'  => $email_content,
-                    'footer_txt' => "Thanks for using Nexora!",
-                    'button_url' => $button_url,
-                    'button_text' => $button_text,
-                    'product_name' => 'Team Nexora',
-                ],
-                'result' => [],
-                'view' => 'EmailTemplate',
-                'from_email' => $from_email,
-                'from_name' => "Team Nexora",
-            ];
-            SendEmailJob::dispatch($user_email, $mail_data);
-            return successResponse(HttpStatusConstant::OK, 'Verification email sent successfully');
         } catch (\Exception $e) {
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
