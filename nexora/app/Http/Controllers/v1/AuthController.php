@@ -178,6 +178,7 @@ class AuthController extends BaseApiController
         $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string|min:8|confirmed',
+            'token' => 'required|string',
         ]);
 
         try{
@@ -186,7 +187,10 @@ class AuthController extends BaseApiController
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
             }
-            $user->update(['password' => Hash::make($request->password)]);
+            if(!hash::check($request->token, $user->password_reset_token)) {
+                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_TOKEN', 'Invalid token');
+            }
+            $user->update(['password' => Hash::make($request->password), 'password_reset_token' => null]);
             return successResponse(HttpStatusConstant::OK, 'Password reset successfully');
         } catch (\Exception $e) {
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
@@ -208,10 +212,13 @@ class AuthController extends BaseApiController
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
             }
+            $token = Str::random(64);
+            $hashed_token = Hash::make($token);
+            $user->update(['remember_token' => $hashed_token]);
             //send mail for forgot password
             $subject = 'Reset Your Password';
             $email_content = 'You have requested to reset your password. Please click the button below to reset your password.';
-            $button_url = 'https://nexora.com/reset-password'; //temporary url for reset password page
+            $button_url = 'https://nexora.com/reset-password?token=' . $token; //temporary url for reset password page
             $button_text = 'Reset Password';
             $from_email = EmailConstant::FROM_EMAIL;
             $mail_data = [
