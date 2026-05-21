@@ -35,7 +35,7 @@ class AuthController extends BaseApiController
             $create_user = User::create([
                 'name' => $name,
                 'email' => $email,
-                'password' => bcrypt($password),
+                'password' => Hash::make($password),
                 'first_name' => $first_name,
                 'last_name' => $last_name,
                 'status' => 1,//defult status is active, can be updated later by admin
@@ -69,7 +69,7 @@ class AuthController extends BaseApiController
             }
             return successResponse(HttpStatusConstant::CREATED, $create_user);
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
     }
 
@@ -89,7 +89,7 @@ class AuthController extends BaseApiController
             $user->delete();
             return successResponse(HttpStatusConstant::OK, 'User deleted successfully');
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong' );
         }
     }
 
@@ -124,9 +124,15 @@ class AuthController extends BaseApiController
             //generate token for further authentication
             $token = $user->createToken('auth_token')->plainTextToken;
             $user->update(['last_login_at' => now()]);
-            return successResponse(HttpStatusConstant::OK, $token);
+            $response_data = [
+                'user' => $user,
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'user_type' => $user->user_type,
+            ];
+            return successResponse(HttpStatusConstant::OK, $response_data);
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
     }
 
@@ -143,7 +149,7 @@ class AuthController extends BaseApiController
             }
             return successResponse(HttpStatusConstant::OK, 'Logged out successfully');
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
     } 
 
@@ -163,7 +169,7 @@ class AuthController extends BaseApiController
             $user->forceDelete();
             return successResponse(HttpStatusConstant::OK, 'User deleted permanently');
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
     }
 
@@ -193,7 +199,7 @@ class AuthController extends BaseApiController
             $user->update(['password' => Hash::make($request->password), 'password_reset_token' => null]);
             return successResponse(HttpStatusConstant::OK, 'Password reset successfully');
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
     }
 
@@ -242,7 +248,7 @@ class AuthController extends BaseApiController
             SendEmailJob::dispatch($email, $mail_data);
             return successResponse(HttpStatusConstant::OK, 'Password reset link sent to your email');
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
     }
 
@@ -291,7 +297,7 @@ class AuthController extends BaseApiController
             SendEmailJob::dispatch($user_email, $mail_data);
             return successResponse(HttpStatusConstant::OK, 'Verification email sent successfully');
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
     }
 
@@ -325,7 +331,7 @@ class AuthController extends BaseApiController
             $user->update(['email_verified_at' => now(), 'email_verification_token' => null]);
             return successResponse(HttpStatusConstant::OK, 'Email verified successfully');
         } catch (\Exception $e) {
-            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
     }
 }
