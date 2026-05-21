@@ -14,7 +14,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/forgot-password', 'forgotPassword');
         Route::post('/reset-password', 'resetPassword');
         Route::post('/email/verification', 'sendVerificationEmail'); //send email verification link to user email
-        Route::post('/email/verify', 'verifyEmail'); //verify email using token from email link
+        Route::get('/email/verify', 'verifyEmail'); //verify email using token from email link
     });
     Route::controller(AuthController::class)->middleware('auth:sanctum')->group(function () {
         Route::post('/logout', 'logout');

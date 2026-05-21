@@ -69,7 +69,7 @@ class AuthController extends BaseApiController
                 'from_name' => "Team Nexora",
             ];
 
-            dispatch(new SendEmailJob($email, $mail_data));
+            SendEmailJob::dispatch($email, $mail_data);
             if (!$create_user) {
                 return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to create user');
             }
@@ -113,13 +113,13 @@ class AuthController extends BaseApiController
             $email = $request->email;
             $password = $request->password;
             $user = User::where('email', $email)->first();
+            if (!$user) {
+                return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
             //need to chech email verification for login
             if(!$user->email_verified_at){
                 return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'EMAIL_NOT_VERIFIED', 'Email not verified');
             } 
-            if (!$user) {
-                return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
-            }
             $password_match = Hash::check($password, $user->password);
             if (!$password_match) {
                 return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'UNAUTHORIZED', 'Invalid credentials');
@@ -229,7 +229,7 @@ class AuthController extends BaseApiController
                 'from_email' => $from_email,
                 'from_name' => "Team Nexora",
             ];
-            dispatch(new SendEmailJob($email, $mail_data));
+            SendEmailJob::dispatch($email, $mail_data);
             return successResponse(HttpStatusConstant::OK, 'Password reset link sent to your email');
         } catch (\Exception $e) {
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
@@ -275,7 +275,7 @@ class AuthController extends BaseApiController
                 'from_email' => $from_email,
                 'from_name' => "Team Nexora",
             ];
-            dispatch(new SendEmailJob($user_email, $mail_data));
+            SendEmailJob::dispatch($user_email, $mail_data);
             return successResponse(HttpStatusConstant::OK, 'Verification email sent successfully');
         } catch (\Exception $e) {
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
@@ -296,6 +296,9 @@ class AuthController extends BaseApiController
             $request_token = $request->token;
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            if($user->email_verified_at){
+                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'ALREADY_VERIFIED', 'Email already verified');
             }
             if (!$user->email_verification_token) {
                 return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_TOKEN', 'Invalid token');
