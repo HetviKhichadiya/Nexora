@@ -239,13 +239,13 @@ class AuthController extends BaseApiController
     /**
      * Send email verification notification
      */
-    public function sendVerificationEmail(Request $request)
+    public function sendVerificationEmail($email = null)
     {
-        $request->validate([
-            'email' => 'required|string|email',
-        ]);
         try{
-            $user_email = $request->email;
+            if(empty($email)) {
+                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'EMAIL_REQUIRED', 'Email is required');
+            }
+            $user_email = $email;
             $user = User::where('email', $user_email)->first();
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
