@@ -5,6 +5,7 @@ namespace App\Http\Controllers\v1;
 use App\Constants\EmailConstant;
 use App\Constants\HttpStatusConstant;
 use App\Jobs\SendEmailJob;
+use Illuminate\Support\Str;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -234,22 +235,25 @@ class AuthController extends BaseApiController
     /**
      * Send email verification notification
      */
-    public function sendVerificationEmail()
+    public function sendVerificationEmail(Request $request)
     {
+        $request->validate([
+            'email' => 'required|string|email',
+        ]);
         try{
-            $user_email = $this->user()->email;
+            $user_email = $request->email;
             $user = User::where('email', $user_email)->first();
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
             }
 
             //send mail for email verification
-            $verification_token = $user->createToken('email_verification_token')->plainTextToken;
+            $verification_token = Str::random(64);
             $hashed_token = Hash::make($verification_token);
             $user->update(['email_verification_token' => $hashed_token]);
             $subject = 'Email Verification';
             $email_content = 'Please click the button below to verify your email address.';
-            $button_url = 'https://nexora.com/verify-email/'.$hashed_token; //temporary url for email verification page
+            $button_url = 'https://nexora.com/verify-email/'.$verification_token; //temporary url for email verification page
             $button_text = 'Verify Email';
             $from_email = EmailConstant::FROM_EMAIL;
             $mail_data = [
@@ -279,8 +283,12 @@ class AuthController extends BaseApiController
      */
     public function verifyEmail(Request $request)
     {
+        $request->validate([
+            'email' => 'required|string|email',
+            'token' => 'required|string',
+        ]);
         try{
-            $user = $this->user();
+            $user = User::where('email', $request->email)->first();
             $request_token = $request->token;
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
@@ -288,7 +296,7 @@ class AuthController extends BaseApiController
             if (!$user->email_verification_token) {
                 return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_TOKEN', 'Invalid token');
             }
-            if ($request_token !== $user->email_verification_token) {
+            if (!Hash::check($request_token, $user->email_verification_token)) {
                 return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_TOKEN', 'Invalid token');
             }
             $user->update(['email_verified_at' => now(), 'email_verification_token' => null]);
