@@ -4,14 +4,12 @@ namespace App\Http\Controllers\v1;
 
 use App\Constants\EmailConstant;
 use App\Constants\HttpStatusConstant;
-use App\Http\Controllers\Controller;
 use App\Jobs\SendEmailJob;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 
-class AuthController extends Controller
+class AuthController extends BaseApiController
 {
     /**
      * Signup user
@@ -51,7 +49,7 @@ class AuthController extends Controller
 
             $subject = 'Welcome to Nexora';
             $email_content = 'Thank you for signing up with Nexora. We are excited to have you on board! If you have any questions or need assistance, feel free to reach out to our support team.';
-            $button_url = 'https://nexora.com';
+            $button_url = 'https://nexora.com'; //temporary url for dashboard page
             $button_text = 'Visit Nexora';
             $from_email = EmailConstant::FROM_EMAIL;
             $mail_data = [
@@ -162,6 +160,140 @@ class AuthController extends Controller
             }
             $user->forceDelete();
             return successResponse(HttpStatusConstant::OK, 'User deleted permanently');
+        } catch (\Exception $e) {
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset password
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        try{
+            $email = $request->email;
+            $user = User::where('email', $email)->first();
+            if (!$user) {
+                return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            $user->update(['password' => Hash::make($request->password)]);
+            return successResponse(HttpStatusConstant::OK, 'Password reset successfully');
+        } catch (\Exception $e) {
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+        }
+    }
+
+    /**
+     * Forgot password
+     */
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email',
+        ]);
+
+        try{
+            $email = $request->email;
+            $user = User::where('email', $email)->first();
+            if (!$user) {
+                return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            //send mail for forgot password
+            $subject = 'Reset Your Password';
+            $email_content = 'You have requested to reset your password. Please click the button below to reset your password.';
+            $button_url = 'https://nexora.com/reset-password'; //temporary url for reset password page
+            $button_text = 'Reset Password';
+            $from_email = EmailConstant::FROM_EMAIL;
+            $mail_data = [
+                'form_type' => $subject,
+                'greeting' => "Hi {$user->first_name} {$user->last_name},",
+                'email_data' => [
+                    'body_text'  => $email_content,
+                    'footer_txt' => "Thanks for using Nexora!",
+                    'button_url' => $button_url,
+                    'button_text' => $button_text,
+                    'product_name' => 'Team Nexora',
+                ],
+                'result' => [],
+                'view' => 'EmailTemplate',
+                'from_email' => $from_email,
+                'from_name' => "Team Nexora",
+            ];
+            dispatch(new SendEmailJob($email, $mail_data));
+            return successResponse(HttpStatusConstant::OK, 'Password reset link sent to your email');
+        } catch (\Exception $e) {
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+        }
+    }
+
+    /**
+     * Send email verification notification
+     */
+    public function sendVerificationEmail()
+    {
+        try{
+            $user_email = $this->user()->email;
+            $user = User::where('email', $user_email)->first();
+            if (!$user) {
+                return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+
+            //send mail for email verification
+            $verification_token = $user->createToken('email_verification_token')->plainTextToken;
+            $hashed_token = Hash::make($verification_token);
+            $user->update(['email_verification_token' => $hashed_token]);
+            $subject = 'Email Verification';
+            $email_content = 'Please click the button below to verify your email address.';
+            $button_url = 'https://nexora.com/verify-email/'.$hashed_token; //temporary url for email verification page
+            $button_text = 'Verify Email';
+            $from_email = EmailConstant::FROM_EMAIL;
+            $mail_data = [
+                'form_type' => $subject,
+                'greeting' => "Hi {$user->first_name} {$user->last_name},",
+                'email_data' => [
+                    'body_text'  => $email_content,
+                    'footer_txt' => "Thanks for using Nexora!",
+                    'button_url' => $button_url,
+                    'button_text' => $button_text,
+                    'product_name' => 'Team Nexora',
+                ],
+                'result' => [],
+                'view' => 'EmailTemplate',
+                'from_email' => $from_email,
+                'from_name' => "Team Nexora",
+            ];
+            dispatch(new SendEmailJob($user_email, $mail_data));
+            return successResponse(HttpStatusConstant::OK, 'Verification email sent successfully');
+        } catch (\Exception $e) {
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
+        }
+    }
+
+    /**
+     * Verify email
+     */
+    public function verifyEmail(Request $request)
+    {
+        try{
+            $user_id = $this->user_id();
+            $user = User::find($user_id);
+            $request_token = $request->token;
+            if (!$user) {
+                return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            if (!$user->email_verification_token) {
+                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_TOKEN', 'Invalid token');
+            }
+            if ($request_token !== $user->email_verification_token) {
+                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_TOKEN', 'Invalid token');
+            }
+            $user->update(['email_verified_at' => now(), 'email_verification_token' => null]);
+            return successResponse(HttpStatusConstant::OK, 'Email verified successfully');
         } catch (\Exception $e) {
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', $e->getMessage());
         }
