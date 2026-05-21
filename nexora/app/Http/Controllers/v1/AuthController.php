@@ -280,8 +280,7 @@ class AuthController extends BaseApiController
     public function verifyEmail(Request $request)
     {
         try{
-            $user_id = $this->user_id();
-            $user = User::find($user_id);
+            $user = $this->user();
             $request_token = $request->token;
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
