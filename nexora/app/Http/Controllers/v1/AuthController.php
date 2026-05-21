@@ -21,6 +21,7 @@ class AuthController extends BaseApiController
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
+            'user_type' => 'required|in:1,2',//allow only 1 for user and 2 for customer
         ]);
 
         try{
@@ -29,14 +30,7 @@ class AuthController extends BaseApiController
             $name = $request->name;
             $first_name = $request->first_name ?? '';
             $last_name = $request->last_name ?? '';
-            $status = $request->status ?? 1;
             $user_type = $request->user_type ?? 1;
-
-            // Check email exists in users table
-            $check_email = emailExists($email);
-            if ($check_email) {
-                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'EMAIL_EXISTS', 'Email already exists');
-            }
 
             $create_user = User::create([
                 'name' => $name,
@@ -44,7 +38,7 @@ class AuthController extends BaseApiController
                 'password' => bcrypt($password),
                 'first_name' => $first_name,
                 'last_name' => $last_name,
-                'status' => $status,
+                'status' => 1,//defult status is active, can be updated later by admin
                 'user_type' => $user_type,
             ]);
 
@@ -112,9 +106,12 @@ class AuthController extends BaseApiController
         try{
             $email = $request->email;
             $password = $request->password;
-            $user = User::where('email', $email)->first();
+            $user = User::where(['email' => $email])->first();
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            if($user->status != 1) {
+                return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'USER_INACTIVE', 'User is inactive');
             }
             //need to chech email verification for login
             if(!$user->email_verified_at){
@@ -183,9 +180,12 @@ class AuthController extends BaseApiController
 
         try{
             $email = $request->email;
-            $user = User::where('email', $email)->first();
+            $user = User::where(['email' => $email])->first();
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            if($user->status != 1) {
+                return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'USER_INACTIVE', 'User is inactive');
             }
             if(!hash::check($request->token, $user->password_reset_token)) {
                 return errorResponse(HttpStatusConstant::BAD_REQUEST, 'INVALID_TOKEN', 'Invalid token');
@@ -208,9 +208,12 @@ class AuthController extends BaseApiController
 
         try{
             $email = $request->email;
-            $user = User::where('email', $email)->first();
+            $user = User::where(['email' => $email])->first();
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            if($user->status != 1) {
+                return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'USER_INACTIVE', 'User is inactive');
             }
             $token = Str::random(64);
             $hashed_token = Hash::make($token);
@@ -253,9 +256,12 @@ class AuthController extends BaseApiController
                 return errorResponse(HttpStatusConstant::BAD_REQUEST, 'EMAIL_REQUIRED', 'Email is required');
             }
             $user_email = $email;
-            $user = User::where('email', $user_email)->first();
+            $user = User::where(['email' => $user_email])->first();
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            if($user->status != 1) {
+                return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'USER_INACTIVE', 'User is inactive');
             }
 
             //send mail for email verification
@@ -299,10 +305,13 @@ class AuthController extends BaseApiController
             'token' => 'required|string',
         ]);
         try{
-            $user = User::where('email', $request->email)->first();
+            $user = User::where(['email' => $request->email])->first();
             $request_token = $request->token;
             if (!$user) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            if($user->status != 1) {
+                return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'USER_INACTIVE', 'User is inactive');
             }
             if($user->email_verified_at){
                 return errorResponse(HttpStatusConstant::BAD_REQUEST, 'ALREADY_VERIFIED', 'Email already verified');
