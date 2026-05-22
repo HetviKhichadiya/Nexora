@@ -89,7 +89,9 @@ class AuthController extends BaseApiController
                 'from_email' => $from_email,
                 'from_name' => "Team Nexora",
             ];
-            SendEmailJob::dispatch($create_user->email, $mail_data)->afterCommit();
+            SendEmailJob::dispatch($create_user->email, $mail_data)
+                ->delay(now()->addSeconds(5))
+                ->afterCommit();
             if (!$create_user) {
                 return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to create user');
             }
