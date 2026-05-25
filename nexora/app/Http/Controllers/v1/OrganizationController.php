@@ -82,7 +82,7 @@ class OrganizationController extends BaseApiController
      */
     public function getOrganizationDetails($id)
     {
-        $organization = Organization::find($id);
+        $organization = Organization::find($id)->where('created_by', $this->user_id())->first();
         if (!$organization) {
             return errorResponse(HttpStatusConstant::NOT_FOUND, 'NOT_FOUND', 'Organization not found');
         }
@@ -107,7 +107,7 @@ class OrganizationController extends BaseApiController
             'name' => 'required|string|max:255|unique:organizations,name,'.$id,
         ]);
         try {
-            $organization = Organization::find($id);
+            $organization = Organization::find($id)->where('created_by', $this->user_id())->first();
             if (!$organization) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'NOT_FOUND', 'Organization not found');
             }
@@ -141,7 +141,7 @@ class OrganizationController extends BaseApiController
     public function deleteOrganization($id)
     {
         try {
-            $organization = Organization::find($id);
+            $organization = Organization::find($id)->where('created_by', $this->user_id())->first();
             if (!$organization) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'NOT_FOUND', 'Organization not found');
             }
@@ -163,7 +163,7 @@ class OrganizationController extends BaseApiController
     public function updateOrganizationSettings(Request $request, $organization_id)
     {
         try {
-            $organization_settings = OrganizationSetting::where('organization_id', $organization_id)->first();
+            $organization_settings = OrganizationSetting::where('organization_id', $organization_id)->where('created_by', $this->user_id())->first();
             if (!$organization_settings) {
                 return errorResponse(HttpStatusConstant::NOT_FOUND, 'NOT_FOUND', 'Organization settings not found');
             }
