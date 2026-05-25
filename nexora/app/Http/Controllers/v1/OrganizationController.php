@@ -8,6 +8,7 @@ use App\Http\Controllers\BaseApiController;
 use App\Models\Organization;
 use App\Models\OrganizationSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrganizationController extends BaseApiController
 {
@@ -15,10 +16,14 @@ class OrganizationController extends BaseApiController
     /**
      * List all organizations.
      */
-    public function getOrganizations()
+    public function getOrganizations(Request $request)
     {
-        $organizations = Organization::all();
-        $response = $organizations->map(function ($organization) {
+        $organizations = Organization::query();
+        [$page, $limit] = getPaginationParams($request);
+
+        $total = (clone $organizations)->count();
+        $organizations_data = $organizations->skip(($page - 1) * $limit)->take($limit)->get();
+        $response = $organizations_data->map(function ($organization) {
             return [
                 'id' => $organization->id,
                 'name' => $organization->name,
@@ -28,7 +33,8 @@ class OrganizationController extends BaseApiController
                 'updated_at' => $organization->updated_at,
             ];
         });
-        return successResponse(HttpStatusConstant::OK, $response);
+        $meta = buildPaginationMeta($total, $page, $limit);
+        return successResponse(HttpStatusConstant::OK, $response, $meta);
     }
 
     /**
@@ -53,6 +59,7 @@ class OrganizationController extends BaseApiController
             if (!$organization) {
                 return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to create organization');
             }
+            DB::beginTransaction();
             $organizationSetting = OrganizationSetting::create([
                 'organization_id' => $organization->id,
                 'timezone' => $request->timezone ?? 'UTC',
@@ -71,8 +78,10 @@ class OrganizationController extends BaseApiController
                 'updated_at' => $organization->updated_at,
                 'settings' => $organizationSetting,
             ];
+            DB::commit();
             return successResponse(HttpStatusConstant::CREATED, $response);
         } catch (\Exception $e) {
+            DB::rollBack();
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Something went wrong while creating the organization');
         }
     }

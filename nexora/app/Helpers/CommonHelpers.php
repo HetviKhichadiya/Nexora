@@ -127,3 +127,28 @@ function metaResponse($total = 0, $nextCursor = null, $prevCursor = null, $limit
         'request_id' => (string) Str::uuid()
     ];
 }
+
+function getPaginationParams($request = null): array    
+{
+    $page = (int) request()->get('cursor', 1);
+    $limit = (int) request()->get('limit', 10);
+
+    return [$page, $limit];
+}
+
+function normalizePage(int $page, int $total, int $limit): int
+{
+    $totalPages = max((int) ceil($total / $limit), 1);
+    return min(max($page, 1), $totalPages);
+}
+
+function buildPaginationMeta(int $total, int $page, int $limit): array
+{
+    $totalPages = max((int) ceil($total / $limit), 1);
+    return [
+        'total' => $total,
+        'next_cursor' => $page < $totalPages ? $page + 1 : '',
+        'previous_cursor' => $page > 1 ? $page - 1 : '',
+        'limit' => $limit,
+    ];
+}
