@@ -1,8 +1,7 @@
 <?php
 
 use App\Http\Controllers\v1\AuthController;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
-use Illuminate\Http\Request;
+use App\Http\Controllers\v1\OrganizationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -15,9 +14,22 @@ Route::prefix('v1')->group(function () {
         Route::post('/reset-password', 'resetPassword');
         Route::post('/email/verify', 'verifyEmail'); //verify email using token from email link
     });
-    Route::controller(AuthController::class)->middleware('auth:sanctum')->group(function () {
-        Route::post('/logout', 'logout');
-        Route::delete('/user/{id?}', 'deleteUser');
-        Route::delete('/permanent/user/{id?}', 'deleteForeverUser');
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::controller(AuthController::class)->group(function () {
+            Route::post('/logout', 'logout');
+            Route::delete('/user/{id?}', 'deleteUser');
+            Route::delete('/permanent/user/{id?}', 'deleteForeverUser');
+            Route::post('/resend-verification-email', 'resendVerificationEmail');
+
+        });
+        Route::controller(OrganizationController::class)->prefix('organization')->group(function () {
+            Route::post('/', 'createOrganization');
+            Route::get('/', 'getOrganizations');
+            Route::get('/{id}', 'getOrganizationDetails');
+            Route::patch('/{id}', 'updateOrganization');
+            Route::delete('/{id}', 'deleteOrganization');
+            Route::delete('/permanent/{id}', 'deleteForeverOrganization');
+            Route::patch('/settings/{id}', 'updateOrganizationSettings');
+        });
     });
 });

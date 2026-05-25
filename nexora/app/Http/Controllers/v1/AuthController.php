@@ -4,10 +4,12 @@ namespace App\Http\Controllers\v1;
 
 use App\Constants\EmailConstant;
 use App\Constants\HttpStatusConstant;
+use App\Http\Controllers\BaseApiController;
 use App\Jobs\SendEmailJob;
 use Illuminate\Support\Str;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Constants\CommonConstant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -31,7 +33,7 @@ class AuthController extends BaseApiController
             $name = $request->name;
             $first_name = $request->first_name ?? '';
             $last_name = $request->last_name ?? '';
-            $user_type = $request->user_type ?? 1;
+            $user_type = $request->user_type ?? CommonConstant::USER_TYPE_USER;
 
             $create_user = User::create([
                 'name' => $name,
@@ -39,7 +41,7 @@ class AuthController extends BaseApiController
                 'password' => Hash::make($password),
                 'first_name' => $first_name,
                 'last_name' => $last_name,
-                'status' => 1,//defult status is active, can be updated later by admin
+                'status' => CommonConstant::ACTIVE_STATUS,//defult status is active, can be updated later by admin
                 'user_type' => $user_type,
             ]);
 
@@ -96,7 +98,7 @@ class AuthController extends BaseApiController
                 return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to create user');
             }
             DB::commit();
-            return successResponse(HttpStatusConstant::CREATED, $create_user);
+            return successResponse(HttpStatusConstant::CREATED, 'User created successfully');
         } catch (\Exception $e) {
             DB::rollback();
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
@@ -155,7 +157,7 @@ class AuthController extends BaseApiController
             $token = $user->createToken('auth_token')->plainTextToken;
             $user->update(['last_login_at' => now()]);
             $response_data = [
-                'user' => $user,
+                'user_id' => $user->id,
                 'access_token' => $token,
                 'token_type' => 'Bearer',
                 'user_type' => $user->user_type,
@@ -277,6 +279,58 @@ class AuthController extends BaseApiController
             ];
             SendEmailJob::dispatch($email, $mail_data);
             return successResponse(HttpStatusConstant::OK, 'Password reset link sent to your email');
+        } catch (\Exception $e) {
+            return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
+        }
+    }
+
+    /**
+     * resend email verification link
+     */
+    public function resendVerificationEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email',
+        ]);
+
+        try{
+            $email = $request->email;
+            $user = User::where(['email' => $email])->first();
+            if (!$user) {
+                return errorResponse(HttpStatusConstant::NOT_FOUND, 'USER_NOT_FOUND', 'User not found');
+            }
+            if($user->status != 1) {
+                return errorResponse(HttpStatusConstant::UNAUTHORIZED, 'USER_INACTIVE', 'User is inactive');
+            }
+            if($user->email_verified_at){
+                return errorResponse(HttpStatusConstant::BAD_REQUEST, 'ALREADY_VERIFIED', 'Email already verified');
+            }
+            $verification_token = Str::random(64);
+            $hashed_token = Hash::make($verification_token);
+            $user->update(['email_verification_token' => $hashed_token]);
+            //send mail for email verification
+            $subject = 'Email Verification';
+            $email_content = 'Please click the button below to verify your email address.';
+            $button_url = 'https://nexora.com/verify-email/' . $verification_token; //temporary url for email verification page
+            $button_text = 'Verify Email';
+            $from_email = EmailConstant::FROM_EMAIL;
+            $mail_data = [
+                'form_type' => $subject,
+                'greeting' => "Hi {$user->first_name} {$user->last_name},",
+                'email_data' => [
+                    'body_text'  => $email_content,
+                    'footer_txt' => "Thanks for using Nexora!",
+                    'button_url' => $button_url,
+                    'button_text' => $button_text,
+                    'product_name' => 'Team Nexora',
+                ],
+                'result' => [],
+                'view' => 'EmailTemplate',
+                'from_email' => $from_email,
+                'from_name' => "Team Nexora",
+            ];
+            SendEmailJob::dispatch($email, $mail_data);
+            return successResponse(HttpStatusConstant::OK, 'Verification email resent successfully');
         } catch (\Exception $e) {
             return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'something went wrong');
         }
