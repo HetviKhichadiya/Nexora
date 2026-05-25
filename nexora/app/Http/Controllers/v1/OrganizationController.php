@@ -51,6 +51,7 @@ class OrganizationController extends BaseApiController
             if ($user_type != CommonConstant::USER_TYPE_ADMIN && $user_type != CommonConstant::USER_TYPE_USER) {
                 return errorResponse(HttpStatusConstant::FORBIDDEN, 'FORBIDDEN', 'You do not have permission to create an organization');
             }
+            DB::beginTransaction();
             $organization = Organization::create([
                 'name' => $request->name,
                 'created_by' => $user_id,
@@ -59,7 +60,6 @@ class OrganizationController extends BaseApiController
             if (!$organization) {
                 return errorResponse(HttpStatusConstant::INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR', 'Failed to create organization');
             }
-            DB::beginTransaction();
             $organizationSetting = OrganizationSetting::create([
                 'organization_id' => $organization->id,
                 'timezone' => $request->timezone ?? 'UTC',
