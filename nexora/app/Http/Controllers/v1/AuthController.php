@@ -65,7 +65,7 @@ class AuthController extends BaseApiController
                 'from_email' => $from_email,
                 'from_name' => "Team Nexora",
             ];
-            SendEmailJob::dispatch($email, $mail_data)->afterCommit();
+            // SendEmailJob::dispatch($email, $mail_data)->afterCommit(); //uncomment this line to send welcome email after signup
 
             //send mail for email verification
             $verification_token = Str::random(64);

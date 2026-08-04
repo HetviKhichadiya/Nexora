@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\v1\AuthController;
 use App\Http\Controllers\v1\OrganizationController;
+use App\Http\Controllers\v1\OrganizationUserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -23,13 +24,19 @@ Route::prefix('v1')->group(function () {
 
         });
         Route::controller(OrganizationController::class)->prefix('organization')->group(function () {
-            Route::post('/', 'createOrganization');
+            Route::post('/', 'createOrganization')->middleware('permission:organization.create');
             Route::get('/', 'getOrganizations');
             Route::get('/{id}', 'getOrganizationDetails');
             Route::patch('/{id}', 'updateOrganization');
             Route::delete('/{id}', 'deleteOrganization');
             Route::delete('/permanent/{id}', 'deleteForeverOrganization');
             Route::patch('/settings/{id}', 'updateOrganizationSettings');
+        });
+        Route::controller(OrganizationUserController::class)->prefix('organization/user')->group(function () {
+            Route::post('/', 'addUserToOrganization')->middleware('permission:organization.user.create');
+            Route::get('/{org_id}', 'getOrganizationUsers')->middleware('permission:organization.user.view');
+            Route::delete('/{org_id}/{user_id}', 'removeUserFromOrganization')->middleware('permission:organization.user.delete');
+            Route::patch('/{org_id}/{user_id}', 'updateUser')->middleware('permission:organization.user.update');
         });
     });
 });

@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\OrganizationUser;
+use App\Models\Permission;
+use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -151,4 +154,23 @@ function buildPaginationMeta(int $total, int $page, int $limit): array
         'previous_cursor' => $page > 1 ? $page - 1 : '',
         'limit' => $limit,
     ];
+}
+
+function hasPermission($user_id, $permission_key)
+{
+    $user = OrganizationUser::where('user_id', $user_id)->first();
+    if (!$user) {
+        return false;
+    }
+
+    $user_role = $user->role_id;
+    $permission = Permission::where('permission_key', $permission_key)->first();
+    if(!$permission) {
+        return false;
+    }
+    $has_permission = RolePermission::where('role_id', $user_role)
+        ->where('permission_id', $permission->id)
+        ->where('permission_value', 1)
+        ->exists();
+    return $has_permission;
 }
